@@ -1,7 +1,7 @@
 class FirstPersonControls {
 	constructor(object, domElement) {
 		this.object = object;
-		this.target = new THREE.Vector3( 0, 0, -1500);
+		this.target = new THREE.Vector3( 0, 0, 0);
 		this.domElement = ( domElement !== undefined ) ? domElement : document;
 
 		this.enabled = true;
@@ -24,7 +24,7 @@ class FirstPersonControls {
 		this.verticalMax = Math.PI;
 
 		this.lat = 0;
-		this.lon = 0;
+		this.lon = 90;
 		this.phi = 0;
 		this.theta = 0;
 
