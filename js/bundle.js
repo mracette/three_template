@@ -2,7 +2,7 @@
 class FirstPersonControls {
 	constructor(object, domElement) {
 		this.object = object;
-		this.target = new THREE.Vector3( 0, 1000, 1000);
+		this.target = new THREE.Vector3( 0, 0, 0);
 		this.domElement = ( domElement !== undefined ) ? domElement : document;
 
 		this.enabled = true;
@@ -25,7 +25,7 @@ class FirstPersonControls {
 		this.verticalMax = Math.PI;
 
 		this.lat = 0;
-		this.lon = 0;
+		this.lon = 90;
 		this.phi = 0;
 		this.theta = 0;
 
@@ -133,6 +133,78 @@ class FirstPersonControls {
 
 module.exports = FirstPersonControls;
 },{}],2:[function(require,module,exports){
+class VisibleAxes {
+    constructor(scene, params){
+        this.scene = scene;
+        this.upperBound = params.upperBound;
+        this.group = new THREE.Group();
+        this.createAxes();
+    }
+    createAxes(){
+        const lightRed = new THREE.LineBasicMaterial({color: 0xff6666});
+        const darkRed = new THREE.LineBasicMaterial({color: 0x990000});
+
+        const lightGreen = new THREE.LineBasicMaterial({color: 0x66ff66});
+        const darkGreen = new THREE.LineBasicMaterial({color: 0x009900});
+
+        const lightBlue = new THREE.LineBasicMaterial({color: 0x6666ff});
+        const darkBlue = new THREE.LineBasicMaterial({color: 0x000099});
+
+        let xNegativeGeo = new THREE.Geometry();
+        xNegativeGeo.vertices.push(
+            new THREE.Vector3(-this.upperBound,0,0),
+            new THREE.Vector3(0,0,0)
+        );
+        let xPositiveGeo = new THREE.Geometry();
+        xPositiveGeo.vertices.push(
+            new THREE.Vector3(0,0,0),
+            new THREE.Vector3(this.upperBound,0,0)
+        );
+
+        let yNegativeGeo = new THREE.Geometry();
+        yNegativeGeo.vertices.push(
+            new THREE.Vector3(0,-this.upperBound,0),
+            new THREE.Vector3(0,0,0)
+        );
+        let yPositiveGeo = new THREE.Geometry();
+        yPositiveGeo.vertices.push(
+            new THREE.Vector3(0,0,0),
+            new THREE.Vector3(0,this.upperBound,0)
+        );
+
+        let zNegativeGeo = new THREE.Geometry();
+        zNegativeGeo.vertices.push(
+            new THREE.Vector3(0,0,-this.upperBound),
+            new THREE.Vector3(0,0,0)
+        );
+        let zPositiveGeo = new THREE.Geometry();
+        zPositiveGeo.vertices.push(
+            new THREE.Vector3(0,0,0),
+            new THREE.Vector3(0,0,this.upperBound)
+        );
+
+        let xNegativeAxis = new THREE.Line(xNegativeGeo, darkRed);
+        let xPositiveAxis = new THREE.Line(xPositiveGeo, lightRed);
+
+        let yNegativeAxis = new THREE.Line(yNegativeGeo, darkGreen);
+        let yPositiveAxis = new THREE.Line(yPositiveGeo, lightGreen);
+
+        let zNegativeAxis = new THREE.Line(zNegativeGeo, darkBlue);
+        let zPositiveAxis = new THREE.Line(zPositiveGeo, lightBlue);
+
+        this.group.add(xNegativeAxis);
+        this.group.add(xPositiveAxis);
+        this.group.add(yNegativeAxis);
+        this.group.add(yPositiveAxis);
+        this.group.add(zNegativeAxis);
+        this.group.add(zPositiveAxis);
+
+        this.scene.add(this.group);
+        
+    }
+}
+module.exports = VisibleAxes;
+},{}],3:[function(require,module,exports){
 const THREE = window.THREE = require('three');
 const SceneManager = require('./manager.js');
 
@@ -156,13 +228,20 @@ function render() {
     requestAnimationFrame(render);
     manager.update();
 }
-},{"./manager.js":3,"three":9}],3:[function(require,module,exports){
+},{"./manager.js":4,"three":10}],4:[function(require,module,exports){
 const d3Color = require('d3-color');
 const d3Interpolate = require('d3-interpolate');
 const d3Chromatic = require('d3-scale-chromatic');
+
+//SUBJECTS
 const Celestial = require('./subjects/celestial.js');
 const Stars = require('./subjects/stars.js');
+
+//CONTROLS
 const FirstPersonControls = require('./controls/first_person_controls.js');
+
+//HELPERS
+const VisibleAxes = require('./helpers/visible_axes.js');
 
 class SceneManager {
     constructor(canvas){
@@ -179,17 +258,12 @@ class SceneManager {
         this.scene = this.createScene();
         this.renderer = this.createRender(this.screenDimensions);
         this.camera = this.createCamera(this.screenDimensions);
-        this.camera.position.z = this.worldDimensions.depth*-0.5;
+        this.camera.position.z = this.worldDimensions.depth*-0.75;
         this.camera.position.y = 0;
         this.camera.position.x = 0;
-        this.subjects = this.createSubjects(this.scene);
+        this.subjects = this.createSubjects();
         this.controls = this.createControls();
-        // this.camera.lookAt(new THREE.Vector3(
-        //     1,//this.worldDimensions.width/2,
-        //     1,//this.worldDimensions.width/2,
-        //     1//this.worldDimensions.width/2
-        //     )
-        //);
+        this.helpers = this.createHelpers();
     }
 
     createScene() {
@@ -220,107 +294,11 @@ class SceneManager {
         return camera;
     }
 
-    createSubjects(scene){
-        const sun = new Celestial(scene, {
-            'position': new THREE.Vector3(0, 0, this.worldDimensions.height*3.),
-            'color': '#ffffff', 
-            'intensity': 50, 
-            'flagShowHelper': true
-        });
+    createSubjects(){
 
-        // SPHERE 1
-        // const layer1 = new Stars(scene, {
-        //     'number': 100,
-        //     'usePalette': true,
-        //     'colorPalette': d3Chromatic.interpolateCubehelixDefault,
-        //     'minOrbitRadius': 250,
-        //     'maxOrbitRadius': 250,
-        //     'center': new THREE.Vector3(0,0,0),
-        //     'orbitSpeed': 0.0015
-        // });
-        // const layer2 = new Stars(scene, {
-        //     'number': 100,
-        //     'usePalette': true,
-        //     'colorPalette': d3Chromatic.interpolateCubehelixDefault,
-        //     'minOrbitRadius': 250,
-        //     'maxOrbitRadius': 250,
-        //     'center': new THREE.Vector3(0,0,0),
-        //     'orbitSpeed': 0.002
-        // });
-        // const layer3 = new Stars(scene, {
-        //     'number': 100,
-        //     'usePalette': true,
-        //     'colorPalette': d3Chromatic.interpolateCubehelixDefault,
-        //     'minOrbitRadius': 250,
-        //     'maxOrbitRadius': 250,
-        //     'center': new THREE.Vector3(0,0,0),
-        //     'orbitSpeed': 0.0025
-        // });
-        // const layer4 = new Stars(scene, {
-        //     'number': 100,
-        //     'usePalette': true,
-        //     'colorPalette': d3Chromatic.interpolateCubehelixDefault,
-        //     'minOrbitRadius': 250,
-        //     'maxOrbitRadius': 250,
-        //     'center': new THREE.Vector3(0,0,0),
-        //     'orbitSpeed': 0.003
-        // });
-
-        // SPHERE 2
-        const sphereOffset = 250;
-        const layer5 = new Stars(scene, {
-            'number': 1000,
-            'usePalette': true,
-            'colorPalette': d3Chromatic.interpolateWarm,
-            'minOrbitRadius': 250,
-            'maxOrbitRadius': 250,
-            'center': new THREE.Vector3(sphereOffset,0,0),
-            'orbitSpeed': -0.0015
-        });
-        const layer6 = new Stars(scene, {
-            'number': 100,
-            'usePalette': true,
-            'colorPalette': d3Chromatic.interpolateWarm,
-            'minOrbitRadius': 250,
-            'maxOrbitRadius': 250,
-            'center': new THREE.Vector3(sphereOffset,0,0),
-            'orbitSpeed': -0.002
-        });
-        const layer7 = new Stars(scene, {
-            'number': 1000,
-            'usePalette': true,
-            'colorPalette': d3Chromatic.interpolateWarm,
-            'minOrbitRadius': 250,
-            'maxOrbitRadius': 250,
-            'center': new THREE.Vector3(sphereOffset,0,0),
-            'orbitSpeed': -0.0025
-        });
-        const layer8 = new Stars(scene, {
-            'number': 1000,
-            'usePalette': true,
-            'colorPalette': d3Chromatic.interpolateWarm,
-            'minOrbitRadius': 250,
-            'maxOrbitRadius': 250,
-            'center': new THREE.Vector3(sphereOffset,0,0),
-            'orbitSpeed': -0.003
-        });
-
-        const subjects = [
-            // layer1,
-            // layer2,
-            // layer3,
-            // layer4,
-            layer5,
-            layer6,
-            layer7,
-            layer8,
-        ];
-
-        console.log(subjects);
-        return subjects;
     }
 
-    createControls(scene) {
+    createControls() {
         const controls = {
             camControls: new FirstPersonControls(this.camera)
         };
@@ -328,21 +306,18 @@ class SceneManager {
         return controls;
     }
 
+    createHelpers() {
+        const helpers = {
+            visibleAxes: new VisibleAxes(this.scene, {
+                upperBound: 1000
+            })
+        }
+        console.log(helpers);
+        return helpers;
+    }
+
     update() {
         this.controls.camControls.update(this.clock.getDelta());
-
-        // SPHERE 1
-        this.subjects[0].update();
-        this.subjects[1].update();
-        this.subjects[2].update();
-        this.subjects[3].update();
-
-        // SPHERE 2
-        // this.subjects[4].update();
-        // this.subjects[5].update();
-        // this.subjects[6].update();
-        // this.subjects[7].update();
-
         this.renderer.render(this.scene, this.camera);
     }
 
@@ -357,7 +332,7 @@ class SceneManager {
 };
 
 module.exports = SceneManager;
-},{"./controls/first_person_controls.js":1,"./subjects/celestial.js":4,"./subjects/stars.js":5,"d3-color":6,"d3-interpolate":7,"d3-scale-chromatic":8}],4:[function(require,module,exports){
+},{"./controls/first_person_controls.js":1,"./helpers/visible_axes.js":2,"./subjects/celestial.js":5,"./subjects/stars.js":6,"d3-color":7,"d3-interpolate":8,"d3-scale-chromatic":9}],5:[function(require,module,exports){
 class Celestial {
     constructor(scene, params) {
         this.scene = scene;
@@ -408,7 +383,7 @@ class Celestial {
     }
 }
 module.exports = Celestial;
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 const d3Color = require('d3-color');
 const d3Interpolate = require('d3-interpolate');
 const d3Chromatic = require('d3-scale-chromatic');
@@ -493,7 +468,7 @@ class Stars {
     }
 }
 module.exports = Stars;
-},{"d3-color":6,"d3-interpolate":7,"d3-scale-chromatic":8}],6:[function(require,module,exports){
+},{"d3-color":7,"d3-interpolate":8,"d3-scale-chromatic":9}],7:[function(require,module,exports){
 // https://d3js.org/d3-color/ v1.2.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1044,7 +1019,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ v1.3.2 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -1618,7 +1593,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":6}],8:[function(require,module,exports){
+},{"d3-color":7}],9:[function(require,module,exports){
 // https://d3js.org/d3-scale-chromatic/ v1.3.3 Copyright 2018 Mike Bostock
 (function (global, factory) {
 typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-interpolate'), require('d3-color')) :
@@ -2118,7 +2093,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":6,"d3-interpolate":7}],9:[function(require,module,exports){
+},{"d3-color":7,"d3-interpolate":8}],10:[function(require,module,exports){
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -50374,4 +50349,4 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}]},{},[2]);
+},{}]},{},[3]);
