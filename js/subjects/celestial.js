@@ -25,21 +25,9 @@ class Celestial {
         this.lightColor = new THREE.Color(params.lightColor) || new THREE.Color(0xffffff);
         this.intensityMap = params.intensityMap || [{
                 p0:0,
-                p1:0.25,
-                i0:0,
-                i1:30
-            },
-            {
-                p0:0.25,
-                p1:0.5,
-                i0:1,
-                i1:0
-            },
-            {
-                p0:0.5,
                 p1:1,
-                i0:0,
-                i1:0
+                i0:1,
+                i1:1
             }
         ]
         this.helper = params.helper || false;
@@ -148,7 +136,7 @@ class Celestial {
     }
 
     lerp(v0, v1, t) {
-        return v0*(1-t)+v1*t
+        return v0*(1-t)+v1*t;
     }
 
 }
