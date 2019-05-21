@@ -1,5 +1,5 @@
 /**
- * Creates a 'celestial object', which is combined of a directional light
+ * Creates a 'celestial object', which is a directional light combined
  * source with other celestial-like elements, such as a lensflare or a
  * sphere. The group of elements move together in a circular orbit.
  * @module Celestial
@@ -23,7 +23,25 @@ class Celestial {
 
         // optional parameters
         this.lightColor = new THREE.Color(params.lightColor) || new THREE.Color(0xffffff);
-        this.intensity = params.intensity || 30;
+        this.intensityMap = params.intensityMap || [{
+                p0:0,
+                p1:0.25,
+                i0:0,
+                i1:30
+            },
+            {
+                p0:0.25,
+                p1:0.5,
+                i0:1,
+                i1:0
+            },
+            {
+                p0:0.5,
+                p1:1,
+                i0:0,
+                i1:0
+            }
+        ]
         this.helper = params.helper || false;
         this.orbitAxis = params.orbitOffset || new THREE.Vector3(0,0,1);
         this.lensflare = params.lensflare || false;
@@ -35,8 +53,8 @@ class Celestial {
         // add THREE elements
         this.pivot = new THREE.Group; 
         this.pivot.position.copy(this.orbitCenter);
-        this.createLights(this.helper, this.lensflare);
-        if(this.sphere){this.createSphere();}
+        this.dirLight = this.createLights(this.helper, this.lensflare);
+        if(this.sphere){this.sphere = this.createSphere();}
 
         // group all elements and add to scene
         this.group = new THREE.Group;
@@ -55,13 +73,14 @@ class Celestial {
 
         // configure shadows
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = dirLight.shadow.mapSize.height = 128;
+        dirLight.shadow.mapSize.width = dirLight.shadow.mapSize.height = 2048;
         dirLight.shadow.camera.near = 0.1;
         dirLight.shadow.camera.far = 1000;
         dirLight.shadow.camera.left = -100;
         dirLight.shadow.camera.bottom = -100;
         dirLight.shadow.camera.right = 100;
         dirLight.shadow.camera.top = 100;
+        dirLight.shadow.bias = 0.0001;
         dirLight.shadow.camera.lookAt(this.orbitCenter);
 
         if(helper){this.createCameraHelper(dirLight);}
@@ -110,8 +129,26 @@ class Celestial {
         return sphere;
     }
 
-    update(delta) {
-        this.pivot.rotateOnAxis(this.orbitAxis, (delta*this.orbitSpeed/60)*360);
+    update(delta, elapsed) {
+        this.pivot.rotateOnAxis(this.orbitAxis, (delta*this.orbitSpeed*2*Math.PI)/60);
+        let orbitCompletion = (elapsed%(60/this.orbitSpeed))/(60/this.orbitSpeed);
+        let intensity = this.getIntensity(orbitCompletion);
+        this.dirLight.intensity = intensity;
+    }
+
+    getIntensity(orbitCompletion) {
+        let map;
+        for(let i = 0; i < this.intensityMap.length; i++){
+            if(orbitCompletion >= this.intensityMap[i].p0 && orbitCompletion < this.intensityMap[i].p1){
+                map = this.intensityMap[i]
+            }
+        }
+        let value = this.lerp(map.i0, map.i1, (orbitCompletion - map.p0)/(map.p1 - map.p0));
+        return value;
+    }
+
+    lerp(v0, v1, t) {
+        return v0*(1-t)+v1*t
     }
 
 }
