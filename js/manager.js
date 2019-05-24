@@ -5,6 +5,8 @@ const FirstPersonControls = require('./controls/first_person_controls.js');
 
 //HELPERS
 const VisibleAxes = require('./helpers/visible_axes.js');
+require('three/examples/js/loaders/GLTFLoader');
+require('three/examples/js/exporters/GLTFExporter');
 
 //EFFECTS
 
@@ -88,11 +90,59 @@ class SceneManager {
         const helpers = {
             visibleAxes: new VisibleAxes(this.scene, {
                 upperBound: this.worldDimensions.width/2
-            })
+            }),
+            exporter: new THREE.GLTFExporter(),
+            loader: new THREE.GLTFLoader()
         }
         console.log(helpers);
         return helpers;
     }
+
+    loadModels() {
+        return new Promise((resolve, reject) => {
+            Promise.all([
+                // this.importModel()
+            ]).then(result => {
+                let models = {
+
+                }
+                console.log(models);
+                this.models = models
+                resolve();
+            }).catch(error => {
+                console.log(error)
+                reject(error);
+            })
+        });
+    }
+
+    importModel(path, obj){
+        return new Promise((resolve, reject) => {
+            this.helpers.loader.load(
+                path,
+                function(obj){
+                    resolve(obj.scene.children);
+                },
+                function ( xhr ) {
+                    console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+                },
+                function ( error ) {
+                    console.log( 'Error loading model: ' + error );
+                    reject(error)
+                }
+            );
+        });
+    }
+
+    downloadGLTF(exportObj, exportName){
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        var downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href",     dataStr);
+        downloadAnchorNode.setAttribute("download", exportName + ".gltf");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+      }
 
     update() {
         this.controls.camControls.update(this.clock.getDelta());
