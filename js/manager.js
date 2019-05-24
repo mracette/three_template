@@ -1,17 +1,12 @@
-const d3Color = require('d3-color');
-const d3Interpolate = require('d3-interpolate');
-const d3Chromatic = require('d3-scale-chromatic');
-
 //SUBJECTS
-const Celestial = require('./subjects/celestial.js');
-const Stars = require('./subjects/stars.js');
-const PixelGrid = require('./subjects/pixel_grid.js');
 
 //CONTROLS
 const FirstPersonControls = require('./controls/first_person_controls.js');
 
 //HELPERS
 const VisibleAxes = require('./helpers/visible_axes.js');
+
+//EFFECTS
 
 class SceneManager {
     constructor(canvas){
@@ -28,7 +23,7 @@ class SceneManager {
         this.scene = this.createScene();
         this.renderer = this.createRender(this.screenDimensions);
         this.camera = this.createCamera(this.screenDimensions);
-        this.camera.position.z = this.worldDimensions.depth*-0.75;
+        this.camera.position.z = this.worldDimensions.depth * 0.1;
         this.camera.position.y = 0;
         this.camera.position.x = 0;
         this.lights = this.createLights();
@@ -68,14 +63,9 @@ class SceneManager {
     createLights(){
         const lights = {
             ambient: new THREE.AmbientLight(0x222222),
-            directional: new THREE.DirectionalLight( 0xffffff, 0.5 )
         };
-        lights.directional.position.set(
-            0,0,10
-        );
         console.log(lights);
         this.scene.add(lights.ambient);
-        this.scene.add(lights.directional);
         return lights;
     }
 
@@ -97,7 +87,7 @@ class SceneManager {
     createHelpers() {
         const helpers = {
             visibleAxes: new VisibleAxes(this.scene, {
-                upperBound: 1000
+                upperBound: this.worldDimensions.width/2
             })
         }
         console.log(helpers);
