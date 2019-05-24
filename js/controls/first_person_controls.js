@@ -14,12 +14,9 @@ class FirstPersonControls {
 
 		this.activeLook = true;
 
-		this.heightSpeed = false;
-		this.heightCoef = 1.0;
-		this.heightMin = 0.0;
-		this.heightMax = 1.0;
+		this.heightLock = true;
 
-		this.constrainVertical = false;
+		this.constrainVertical = true;
 		this.verticalMin = 0;
 		this.verticalMax = Math.PI;
 
@@ -72,25 +69,19 @@ class FirstPersonControls {
 		}
 	}
 
-	update(delta) {
-		if ( this.enabled === false ) return;
-		
-		if ( this.heightSpeed ) {
-			var y = THREE.Math.clamp( this.object.position.y, this.heightMin, this.heightMax );
-			var heightDelta = y - this.heightMin;
-			this.autoSpeedFactor = delta * ( heightDelta * this.heightCoef );
-		} else {
-			this.autoSpeedFactor = 0.0;
-		}
+	update(delta, yClamp) {
+		if ( this.enabled === false ) return;		
 
 		var actualMoveSpeed = delta * this.movementSpeed;
 
-		if ( this.moveForward || ( this.autoForward && ! this.moveBackward ) ) this.object.translateZ( - ( actualMoveSpeed + this.autoSpeedFactor ) );
+		// translate by key press
+		if ( this.moveForward || ( this.autoForward && ! this.moveBackward ) ) this.object.translateZ( - ( actualMoveSpeed) );
 		if ( this.moveBackward ) this.object.translateZ( actualMoveSpeed );
 		if ( this.moveLeft ) this.object.translateX( - actualMoveSpeed );
 		if ( this.moveRight ) this.object.translateX( actualMoveSpeed );
-		if ( this.moveUp ) this.object.translateY( actualMoveSpeed );
-		if ( this.moveDown ) this.object.translateY( - actualMoveSpeed );
+
+		// enforce height lock
+		if(this.heightLock) this.object.position.y = yClamp || 1;
 
 		var actualLookSpeed = delta * this.lookSpeed;
 
